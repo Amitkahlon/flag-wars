@@ -26,10 +26,9 @@ export const friendsController = () => {
     const uid = req.user.uid;
     const friendId = req.body?.newFriendId;
 
-    if(uid === friendId) {
+    if (uid === friendId) {
       return res.status(400).send({ message: 'Cannot add yourself as a friend' });
     }
-
 
     if (!friendId) {
       return res.status(400).send({ message: 'No friend id was sent' });
@@ -98,6 +97,8 @@ export const friendsController = () => {
 
     res.send(200);
   });
+
+
 
   app.post('/friends/gameinvite/answer', authMiddleware, async (req: any, res) => {
     const answerVal = req.body?.answer as boolean;
