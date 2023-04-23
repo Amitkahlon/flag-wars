@@ -4,17 +4,6 @@ import axios from 'axios';
 import { send } from '../../services/httpContext';
 import { ref, onValue } from 'firebase/database';
 
-// received: {
-//   fromEmail: string;
-//   status: string;
-//   fromName: string;
-// }[];
-// sent: {
-//   toEmail: string;
-//   status: string;
-//   toName: string;
-// }[];
-
 export const FriendsPage = () => {
   const [users, setUsersList] = useState<{ email: string; uid: string }[]>([]);
   const [friendListLoaded, setFriendListLoaded] = useState<boolean>(false);
@@ -42,7 +31,6 @@ export const FriendsPage = () => {
 
   const generateTotalGameInvites = () => {
     const totalGameInvites = [];
-    debugger;
 
     for (const key in gameInvites.received) {
       console.log(`${key}: ${gameInvites.received[key]}`);
@@ -51,6 +39,7 @@ export const FriendsPage = () => {
         // email: gameInvites.received[i].fromEmail,
         id: key,
         sentByYou: false,
+        gameId: gameInvites.received[key].gameId,
       });
     }
 
@@ -60,7 +49,8 @@ export const FriendsPage = () => {
         status: gameInvites.sent[key].status,
         // email: gameInvites.received[i].fromEmail,
         id: key,
-        sentByYou: false,
+        sentByYou: true,
+        gameId: gameInvites.sent[key].gameId,
       });
     }
 
@@ -68,15 +58,54 @@ export const FriendsPage = () => {
   };
 
   const renderGameInvites = () => {
-    return generateTotalGameInvites().map((game) => {
+    const renderedTotalGameInvites = generateTotalGameInvites().map((game) => {
+      const gameStatusHandler = () => {
+        switch (game.status) {
+          case 'pending':
+            return (
+              <div>
+                {game.sentByYou ? (
+                  <p>Your friend did not answer your invite yer</p>
+                ) : (
+                  <>
+                    <p>You friend is waiting for you to accept their invite</p>
+                    <button
+                      onClick={() => {
+                        answerGameInviteHandler(true, game.id);
+                      }}
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => {
+                        answerGameInviteHandler(false, game.id);
+                      }}
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+              </div>
+            );
+          case 'ongoing':
+            return (
+              <div>
+                <p>Game is live!</p>
+                <p>Game Id: {game?.gameId}</p>
+              </div>
+            );
+        }
+      };
+
       return (
         <li>
-          {game.sentByYou ? <p>You sent a game invite to: </p> : <p>You received game invite from:</p>}
           <p>Uid: {game.id}</p>
-          <p>Status: {game.status}</p>
+          {gameStatusHandler()}
         </li>
       );
     });
+
+    return renderedTotalGameInvites;
   };
 
   useEffect(() => {
@@ -118,7 +147,15 @@ export const FriendsPage = () => {
 
   const inviteToGameHandler = async (invitedFriendId: string) => {
     try {
-      const res = await send({ method: 'POST', route: '/friends/gameinvite/' + invitedFriendId });
+      const res = await send({ method: 'POST', route: '/friends/gameinvite', data: { friendId: invitedFriendId } });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const answerGameInviteHandler = async (answer: boolean, id: string) => {
+    try {
+      send({ method: 'POST', route: '/friends/gameinvite/answer', data: { answer: answer, friendUid: id } });
     } catch (error) {
       console.error(error);
     }
@@ -167,10 +204,10 @@ export const FriendsPage = () => {
 
       <div>
         <h2>Game Invites</h2>
-        {!gameInvitesPostRender.length ? (
+        {!generateTotalGameInvites().length ? (
           <p>You do not have game invites, send your friends a invite or wait to get invited :)</p>
         ) : (
-          <ul>{gameInvitesPostRender}</ul>
+          <ul>{renderGameInvites()}</ul>
         )}
       </div>
 

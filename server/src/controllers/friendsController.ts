@@ -26,6 +26,11 @@ export const friendsController = () => {
     const uid = req.user.uid;
     const friendId = req.body?.newFriendId;
 
+    if(uid === friendId) {
+      return res.status(400).send({ message: 'Cannot add yourself as a friend' });
+    }
+
+
     if (!friendId) {
       return res.status(400).send({ message: 'No friend id was sent' });
     }
@@ -57,8 +62,8 @@ export const friendsController = () => {
     }
   });
 
-  app.post('/friends/gameinvite/:uId', authMiddleware, async (req: any, res) => {
-    const friendUid = req.params?.uId;
+  app.post('/friends/gameinvite', authMiddleware, async (req: any, res) => {
+    const friendUid = req.body.friendId;
     const currentUid = req.user.uid;
 
     if (friendUid == null) {
@@ -91,6 +96,61 @@ export const friendsController = () => {
       gameId: null,
     });
 
-    res.send(200)
+    res.send(200);
+  });
+
+  app.post('/friends/gameinvite/answer', authMiddleware, async (req: any, res) => {
+    const answerVal = req.body?.answer as boolean;
+    const friendUid = req.body?.friendUid as string;
+    const currentUid = req.user.uid as string;
+
+    // handle body validation
+    // handle invite validation
+    // handle pending invite
+
+    if (answerVal) {
+      const newGameRef = firebaseDb.ref(`games`).push({
+        player1: currentUid,
+        player2: friendUid,
+        turnCount: 0,
+        currentTurn: false, //player1 = false, player2 = true
+        game: [
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0],
+        ],
+      });
+
+      const gameId = newGameRef.key;
+
+      const currentGameInvitesSentRef = firebaseDb.ref(`game_invites/${currentUid}/received/${friendUid}`);
+      currentGameInvitesSentRef.set({
+        status: 'ongoing',
+        gameId: gameId,
+      });
+
+      const friendGameInvitesReceived = firebaseDb.ref(`game_invites/${friendUid}/sent/${currentUid}`);
+      friendGameInvitesReceived.set({
+        status: 'ongoing',
+        gameId: gameId,
+      });
+    } else {
+      const currentGameInvitesSentRef = firebaseDb.ref(`game_invites/${currentUid}/received`);
+
+      currentGameInvitesSentRef.update({
+        [friendUid]: FieldValue.delete(),
+      });
+
+      const friendGameInvitesReceived = firebaseDb.ref(`game_invites/${friendUid}/sent`);
+
+      friendGameInvitesReceived.update({
+        [currentUid]: FieldValue.delete(),
+      });
+    }
   });
 };
