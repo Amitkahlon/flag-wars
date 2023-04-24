@@ -4,6 +4,7 @@ import { authMiddleware } from '../middlewares/auth';
 import admin from 'firebase-admin';
 import { getDatabase } from 'firebase-admin/database';
 import { FieldValue } from 'firebase-admin/firestore';
+import { team, initCleanBoard } from 'common';
 
 import { DbService } from '../services/dbService';
 
@@ -98,8 +99,6 @@ export const friendsController = () => {
     res.send(200);
   });
 
-
-
   app.post('/friends/gameinvite/answer', authMiddleware, async (req: any, res) => {
     const answerVal = req.body?.answer as boolean;
     const friendUid = req.body?.friendUid as string;
@@ -115,16 +114,7 @@ export const friendsController = () => {
         player2: friendUid,
         turnCount: 0,
         currentTurn: false, //player1 = false, player2 = true
-        game: [
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0],
-          [0, 0, 0, 0, 0, 0, 0, 0],
-        ],
+        game: initCleanBoard(),
       });
 
       const gameId = newGameRef.key;
