@@ -1,4 +1,5 @@
 import React from 'react'
+import '../../css/LoginPage.css';
 import {
     GoogleAuthProvider,
     FacebookAuthProvider,
@@ -6,12 +7,15 @@ import {
 } from 'firebase/auth'
 import { Link } from 'react-router-dom'
 import authService from '../../services/authService'
+// @ts-ignore
+import board from '../../icons/board.png';
 
 export const LoginPage = () => {
     return (
-        <div>
-            <h1>Login Page</h1>
-            <p>Welcome to flag wars, please sign</p>
+        <div className={"background"}>
+            <img className={"background"} src={board} alt={"background"}/>
+            <div className={"cover"}>
+            <h1 className="title">Login</h1>
             <div className={'alt-login'}>
                 <button
                     className={'google'}
@@ -20,7 +24,6 @@ export const LoginPage = () => {
                         authService.signInWithProvider(provider)
                     }}
                 >
-                    Sign in with google
                 </button>
                 <button
                     className={'facebook'}
@@ -29,14 +32,14 @@ export const LoginPage = () => {
                         authService.signInWithProvider(provider)
                     }}
                 >
-                    Sign in with Facebook
                 </button>
             </div>
-            <p>
+            <p className="registerMessage">
                 Did you not create account?<span> </span>
-                <Link to="register">Register</Link>
+                <Link to="/register">Register</Link>
                 <span> </span> now!
             </p>
+        </div>
         </div>
     )
 }

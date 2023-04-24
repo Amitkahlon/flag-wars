@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { LoginPage } from '../components/pages/loginPage';
+import { WelcomePage } from '../components/pages/welcomePage';
 import { HomePage } from '../components/pages/homePage';
 import { RegisterPage } from '../components/pages/registerPage';
 import { auth } from '../firebase/firebase';
@@ -21,7 +22,8 @@ export const AppRouter = () => {
       <Routes>
         {!currentUser ? (
           <>
-            <Route path="/" element={<LoginPage />} />
+            <Route path="/" element={<WelcomePage />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
           </>
         ) : (
