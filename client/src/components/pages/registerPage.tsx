@@ -1,25 +1,26 @@
 import React from 'react'
+import '../../css/RegisterPage.css';
 import {
-    AuthProvider,
     FacebookAuthProvider,
     GoogleAuthProvider,
-    signInWithPopup,
 } from 'firebase/auth'
-import { auth } from '../../firebase/firebase'
-import localStorageService from '../../services/localStorageService'
 import authService from '../../services/authService'
+// @ts-ignore
+import board from '../../icons/board.png';
 
 export const RegisterPage = () => {
     return (
-        <div>
-            <h1>Register</h1>
-            <button
+      <div className={"background"}>
+        <img className={"background"} src={board} alt={"background"}/>
+        <div className={"cover"}>
+          <h1 className="title">Register</h1>
+          <div className={'alt-register'}>
+          <button
                 className={'google'}
                 onClick={() => {
                     authService.registerWithProvider(new GoogleAuthProvider())
                 }}
             >
-                Sign up using google
             </button>
             <button
                 className={'facebook'}
@@ -27,8 +28,9 @@ export const RegisterPage = () => {
                     authService.registerWithProvider(new FacebookAuthProvider())
                 }}
             >
-                Sign up using Facebook
             </button>
+        </div>
+        </div>
         </div>
     )
 }
