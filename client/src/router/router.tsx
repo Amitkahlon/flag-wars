@@ -8,6 +8,7 @@ import { auth } from '../firebase/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { FriendsPage } from '../components/pages/friendsPage';
 import GamePage from '../components/pages/gamePage';
+import OfflineGamePage from '../components/pages/offlineGamePage';
 
 export const AppRouter = () => {
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
@@ -29,6 +30,7 @@ export const AppRouter = () => {
             <Route path="/" element={<HomePage />} />
             <Route path="/friends" element={<FriendsPage />} />
             <Route path="/game/:id" element={<GamePage />} />
+            <Route path="/offline" element={<OfflineGamePage />} />
           </>
         )}
       </Routes>
