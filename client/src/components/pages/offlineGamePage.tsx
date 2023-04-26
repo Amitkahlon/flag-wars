@@ -1,8 +1,10 @@
 import classNames from 'classnames';
 import '../../css/game.css';
-import { useState } from 'react';
-const pawnImage = require('../../assets/pawn.png');
-const kingImage = require('../../assets/king.png');
+import React, { useReducer, useState } from 'react';
+const whitePawnImage = require('../../assets/whitePawn.png');
+const blackPawnImage = require('../../assets/blackPawn.png');
+const whiteKingImage = require('../../assets/whiteKing.png');
+const blackKingImage = require('../../assets/blackKing.png');
 
 export enum team {
   black,
@@ -32,7 +34,7 @@ class Board {
 class Cell {
   public entity: Entity | null;
 
-  constructor(private x: number, private y: number) {
+  constructor(public x: number, public y: number) {
     this.entity = null;
   }
 }
@@ -53,7 +55,10 @@ class MarkerBoard {
 export class Entity {
   public type: entityType;
   public team: team;
-  public image: string;
+  public image: {
+    black: string;
+    white: string;
+  };
   public isVisible: boolean;
 
   public getPossibleMoves?(x: number, y: number, board: Board): MarkerBoard;
@@ -70,7 +75,10 @@ export class Pawn extends Entity {
     super();
     this.type = 'pawn';
     this.team = team;
-    this.image = pawnImage;
+    this.image = {
+      black: blackPawnImage,
+      white: whitePawnImage,
+    };
   }
 
   public override getPossibleMoves(x: number, y: number, board: Board): MarkerBoard {
@@ -97,7 +105,10 @@ export class King extends Entity {
     super();
     this.type = 'king';
     this.team = team;
-    this.image = kingImage;
+    this.image = {
+      black: blackKingImage,
+      white: whiteKingImage,
+    };
   }
 
   public override getPossibleMoves(x: number, y: number, board: Board): MarkerBoard {
@@ -143,16 +154,18 @@ class GameManager {
   public whiteTeam: Team;
 
   public setPiece(entity: Entity, pos: Position) {
+    if (this.setupFinished) throw new Error('Setup is not finished');
+
     const { x, y } = pos;
     const t = entity.team;
     let currentTeam: Team;
     let allowedYColumn: 7 | 0;
     if (t === team.black) {
       currentTeam = this.blackTeam;
-      allowedYColumn = 7;
+      allowedYColumn = 0;
     } else {
       currentTeam = this.whiteTeam;
-      allowedYColumn = 0;
+      allowedYColumn = 7;
     }
 
     const leftSetupCount = currentTeam.piecesSetup[entity.type];
@@ -173,10 +186,10 @@ class GameManager {
   }
 
   public move(entity: Entity, newPos: Position, currPos: Position) {
-    if(!this.setupFinished) {
-      throw new Error("Setup is not finished")
+    if (!this.setupFinished) {
+      throw new Error('Setup is not finished');
     }
-    
+
     const isMovePossible = entity.getPossibleMoves?.(currPos.x, currPos.y, this.board).markerBoard[newPos.y][newPos.x];
     if (!isMovePossible) {
       throw new Error('Move is not possible');
@@ -197,17 +210,87 @@ class GameManager {
     this.whiteTeam = new Team(team.white);
 
     for (let i = 0; i < 8; i++) {
-      this.board.getCell(i, 1).entity = new Pawn(team.white);
+      this.board.getCell(i, 6).entity = new Pawn(team.white);
     }
 
     for (let i = 0; i < 8; i++) {
-      this.board.getCell(i, 6).entity = new Pawn(team.black);
+      this.board.getCell(i, 1).entity = new Pawn(team.black);
     }
   }
 }
 
+function reducer(state: GameManager, action: { type: string; payload?: any }) {
+  switch (action.type) {
+    case 'boardUpdate':
+      return;
+
+    default:
+      throw new Error('No action found');
+  }
+}
+
 const OfflineGamePage = () => {
-  const [gameManager, setGameManager] = useState(new GameManager());
+  const [gameManager, dispatch] = useState(new GameManager());
+  const [currentTeam, setCurrentTeam] = useState(gameManager.whiteTeam);
+  const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null);
+  const [highlightBoard, setHighlightBoard] = useState<MarkerBoard>(new MarkerBoard());
+
+  const renderPieceImage = (entity: Entity) => {
+    if (entity == null) return null;
+    return <img width={60} height={30} src={entity.team === team.black ? entity.image.black : entity.image.white} />;
+  };
+
+  const handleCellClick = (cell: Cell) => {
+    if (!gameManager.setupFinished && selectedEntity && !cell.entity) {
+      try {
+        gameManager.setPiece(selectedEntity, { x: cell.x, y: cell.y });
+        cell.entity = selectedEntity;
+        setSelectedEntity(null);
+        setHighlightBoard(new MarkerBoard());
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
+  const renderGameSetup = () => {
+    const currentTeamPiecesSetup = currentTeam.piecesSetup;
+    const pawnImage = currentTeam.team === team.white ? whitePawnImage : blackPawnImage;
+    const kingImage = currentTeam.team === team.white ? whiteKingImage : blackKingImage;
+
+    return (
+      <div>
+        <div>
+          <img
+            src={kingImage}
+            width={100}
+            height={100}
+            onClick={() => {
+              if (currentTeamPiecesSetup.king === 0) {
+                return;
+                //show error
+              }
+              setSelectedEntity(new King(currentTeam.team));
+              const highlightBoard = new MarkerBoard();
+              for (let i = 0; i < 8; i++) {
+                if (!gameManager.board.getCell(i, 7).entity) {
+                  highlightBoard.markerBoard[i][7] = 1;
+                }
+              }
+
+              setHighlightBoard(highlightBoard);
+            }}
+          />
+          <p>Count: {currentTeamPiecesSetup.king}</p>
+        </div>
+
+        <div>
+          <img src={pawnImage} width={100} height={100} />
+          <p>Count: {currentTeamPiecesSetup.pawn}</p>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -215,16 +298,22 @@ const OfflineGamePage = () => {
       {!gameManager.setupFinished ? <p>Place your pieces</p> : <p>Game started</p>}
 
       <div className="board">
-        {gameManager.board.board?.map((row, x) => (
+        {gameManager.board.board?.map((row: Cell[], x: number) => (
           <div key={x} className="row">
             {row.map((cell, y) => (
-              <button key={y} className={classNames('cell')}>
-                {cell?.entity ? <img src={cell.entity.image} width={60} height={30} /> : null}
+              <button
+                key={y}
+                className={classNames('cell', { selected: 1 === highlightBoard.markerBoard[y][x] })}
+                onClick={() => handleCellClick(cell)}
+              >
+                {renderPieceImage(cell?.entity as Entity)}
               </button>
             ))}
           </div>
         ))}
       </div>
+
+      {renderGameSetup()}
     </div>
   );
 };
