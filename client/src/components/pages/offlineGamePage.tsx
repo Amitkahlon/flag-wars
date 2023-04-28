@@ -5,6 +5,7 @@ const whitePawnImage = require('../../assets/whitePawn.png');
 const blackPawnImage = require('../../assets/blackPawn.png');
 const whiteKingImage = require('../../assets/whiteKing.png');
 const blackKingImage = require('../../assets/blackKing.png');
+const eyeImage = require('../../assets/eye.jpg');
 
 export enum team {
   black,
@@ -87,9 +88,18 @@ class Cell {
   }
 }
 
+enum color {
+  noColor = 0,
+  red = 1,
+  redlight = 2,
+  green = 3,
+  blue = 4,
+  yellow = 5,
+  grey = 6,
+}
+
 class MarkerBoard {
-  public markerBoard: number[][];
-  public readonly HIGHLIGHT_INDICATOR = 1;
+  public markerBoard: color[][];
 
   constructor() {
     this.markerBoard = [[], [], [], [], [], [], [], []];
@@ -100,12 +110,16 @@ class MarkerBoard {
     }
   }
 
-  public setHighlight(x: number, y: number) {
-    this.markerBoard[y][x] = this.HIGHLIGHT_INDICATOR;
+  public setHighlight(x: number, y: number, highlightColor: color = color.green) {
+    this.markerBoard[y][x] = highlightColor;
   }
 
   public isHighlighted(x: number, y: number) {
-    return this.markerBoard[y][x] === this.HIGHLIGHT_INDICATOR;
+    return this.markerBoard[y][x] !== color.noColor;
+  }
+
+  public returnHighlightType(x: number, y: number) {
+    return this.markerBoard[y][x];
   }
 
   /**
@@ -415,7 +429,14 @@ const OfflineGamePage = () => {
       return <p>?</p>;
     }
 
-    return <img width={60} height={30} src={image} />;
+    return (
+      <div className="image-container">
+        <img width={45} height={40} src={image} />
+        {entity.isVisible && entity.team === currentTeam.team ? (
+          <img width={15} height={15} src={eyeImage} className="small-image" />
+        ) : null}
+      </div>
+    );
   };
 
   const handleCellClick = (cell: Cell) => {
@@ -453,7 +474,20 @@ const OfflineGamePage = () => {
           setGameManager(gmClone);
           setHighlightBoard(new MarkerBoard());
 
-          doRandomMove(gameManager.teamTurn);
+          setTimeout(() => {
+            const randomMoveDetails = execRandomMove(gameManager.teamTurn);
+            const highlightBoardWithEnemyMove = new MarkerBoard();
+            highlightBoardWithEnemyMove.setHighlight(randomMoveDetails.move.x, randomMoveDetails.move.y, color.red);
+            highlightBoardWithEnemyMove.setHighlight(
+              randomMoveDetails.entityPos.x,
+              randomMoveDetails.entityPos.y,
+              color.blue,
+            );
+
+            const gmClone = gameManager.getClone();
+            setGameManager(gmClone);
+            setHighlightBoard(highlightBoardWithEnemyMove);
+          }, 2000);
         } catch (error) {
           console.error(error);
         }
@@ -533,9 +567,10 @@ const OfflineGamePage = () => {
 
   /**
    * MEGA CODE
+   * returns the random move
    * @param t
    */
-  const doRandomMove = (t: Team) => {
+  const execRandomMove = (t: Team) => {
     const currentTeamOnBoardEntities: { entity: Entity; pos: { x: number; y: number } }[] = [];
     for (let i = 0; i < 8; i++) {
       for (let j = 0; j < 8; j++) {
@@ -570,7 +605,7 @@ const OfflineGamePage = () => {
 
     gameManager.move(randomEntity.entity, randomMove, randomEntity.pos);
 
-    // gameManager.board.printBoard();
+    return { move: randomMove, entityPos: randomEntity.pos };
   };
 
   return (
@@ -581,15 +616,19 @@ const OfflineGamePage = () => {
       <div className="board">
         {gameManager.board.board?.map((row: Cell[], y: number) => (
           <div key={y} className="row">
-            {row.map((cell, x) => (
-              <button
-                key={x}
-                className={classNames('cell', { selected: highlightBoard.isHighlighted(x, y) })}
-                onClick={() => handleCellClick(cell)}
-              >
-                {renderPieceImage(cell?.entity as Entity)}
-              </button>
-            ))}
+            {row.map((cell, x) => {
+              return (
+                <button
+                  key={x}
+                  className={classNames('cell', {
+                    [`${color[highlightBoard.returnHighlightType(x, y)]}-highlight`]: true,
+                  })}
+                  onClick={() => handleCellClick(cell)}
+                >
+                  {renderPieceImage(cell?.entity as Entity)}
+                </button>
+              );
+            })}
           </div>
         ))}
       </div>

@@ -22,6 +22,36 @@
   border: 1px solid black;
 }
 
-.selected {
-  background-color: brown;
+.redlight-highlight {
+  background-color: rgba(209, 25, 25, 0.514);
+}
+
+.red-highlight {
+  background-color: rgba(209, 25, 25, 0.514);
+}
+
+.green-highlight {
+  background-color: rgba(12, 243, 4, 0.747);
+}
+
+.blue-highlight {
+  background-color: rgba(10, 72, 207, 0.596);
+}
+
+.yellow-highlight {
+  background-color: rgba(223, 219, 17, 0.555);
+}
+
+.grey-highlight {
+  background-color: rgba(68, 68, 68, 0.589);
+}
+
+.image-container {
+  position: relative;
+}
+
+.small-image {
+  position: absolute;
+  top: 0;
+  right: 0;
 }
