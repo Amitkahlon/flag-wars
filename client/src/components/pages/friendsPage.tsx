@@ -3,6 +3,7 @@ import { auth, realTimeDb } from '../../firebase/firebase';
 import axios from 'axios';
 import { send } from '../../services/httpContext';
 import { ref, onValue } from 'firebase/database';
+import { Link } from 'react-router-dom';
 
 export const FriendsPage = () => {
   const [users, setUsersList] = useState<{ email: string; uid: string }[]>([]);
@@ -91,7 +92,7 @@ export const FriendsPage = () => {
             return (
               <div>
                 <p>Game is live!</p>
-                <p>Game Id: {game?.gameId}</p>
+                <Link to={'/game/' + game?.gameId}>Join game</Link>
               </div>
             );
         }
