@@ -31,7 +31,6 @@ Pawn.getImage = function (entity) {
 };
 
 King.getImage = function (entity) {
-  debugger;
   return entity.team === team.black ? blackKingImage : whiteKingImage;
 };
 
