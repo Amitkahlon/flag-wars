@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import authService from '../../services/authService'
 import { useNavigate } from 'react-router-dom'
 
+
+
 export const HomePage = () => {
     const navigate = useNavigate()
 
