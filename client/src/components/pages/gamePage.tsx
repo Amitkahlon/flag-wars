@@ -119,20 +119,6 @@ const GamePage = () => {
 
   const handleReadyClick = () => {
     gameManager.setReady(currentTeam);
-    const oppositeTeam = gameManager.getOppositeTeam(currentTeam);
-
-    let num1, num2;
-    do {
-      num1 = Math.floor(Math.random() * 8);
-      num2 = Math.floor(Math.random() * 8);
-    } while (num1 === num2);
-
-    gameManager.setup_setPiece(new King(oppositeTeam.team), { x: num1, y: oppositeTeam.FIRST_COLUMN });
-    gameManager.setup_setPiece(new King(oppositeTeam.team), { x: num2, y: oppositeTeam.FIRST_COLUMN });
-    gameManager.setReady(oppositeTeam);
-
-    const gmClone = GameManagerFactory.getClone(gameManager);
-    setGameManager(gmClone); //hack to update the ui..
     setSelectedEntity(null);
   };
 
@@ -161,7 +147,22 @@ const GamePage = () => {
   };
 
   const handleCellClick = (cell: Cell) => {
-    console.log('click');
+    // handle setup clicks
+    if (!gameManager.setupFinished) {
+      if (selectedEntity && !cell.entity) {
+        try {
+          gameManager.setup_setPiece(selectedEntity.entity, { x: cell.x, y: cell.y });
+          cell.entity = selectedEntity.entity;
+          setSelectedEntity(null);
+          setHighlightBoard(new MarkerBoard());
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }
+    // handle game clicks
+    else if (gameManager.setupFinished) {
+    }
   };
 
   useEffect(() => {

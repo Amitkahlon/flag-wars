@@ -1,6 +1,6 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { firebaseDb } from '..';
-import { GameManagerFactory } from 'common';
+import { GameManagerFactory, IGameDetails, team } from 'common';
 
 export const rejectGameInvite = async (challenger: string, challenged: string) => {
   const currentGameInvitesSentRef = firebaseDb.ref(`game_invites/${challenged}/received`);
@@ -19,12 +19,18 @@ export const rejectGameInvite = async (challenger: string, challenged: string) =
 export const acceptGameInvite = async (currentUid: string, friendUid: string) => {
   const newGameData = GameManagerFactory.getData(GameManagerFactory.initGameManager());
 
-  const newGameRef = firebaseDb.ref(`games`).push({
-    player1: currentUid,
-    player2: friendUid,
-    white_player: 2,
+  const gameDetails: IGameDetails = {
+    player1: {
+      id: currentUid,
+      team: team.white,
+    },
+    player2: {
+      id: friendUid,
+      team: team.black,
+    },
     game_data: newGameData,
-  });
+  };
+  const newGameRef = firebaseDb.ref(`games`).push(gameDetails);
 
   const gameId = newGameRef.key;
 

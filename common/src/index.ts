@@ -282,7 +282,9 @@ export class GameManager {
     this.board.getCell(x, y).entity = entity;
   }
 
-  public move(entity: Entity, newPos: Position, currPos: Position) {
+  public move(newPos: Position, currPos: Position) {
+    const entity: Entity = this.board.getEntity(currPos.x, currPos.y);
+
     if (entity.team !== this.teamTurn.team) {
       throw new Error('Its not the turn of team: ' + entity.team.toString());
     }
@@ -348,9 +350,9 @@ export class GameManager {
   }
 }
 
-interface IGameManagerData {
-  team1: Team;
-  team2: Team;
+export interface IGameManagerData {
+  whiteTeam: Team;
+  blackTeam: Team;
   teamTurn: team;
   board: Cell[][];
   turnCount: number;
@@ -429,22 +431,14 @@ export class GameManagerFactory {
   }
 
   public static restoreGame(data: IGameManagerData): GameManager {
-    const { board, setupFinished, teamTurn, turnCount, team1, team2 } = data;
+    const { board, setupFinished, teamTurn, turnCount, whiteTeam, blackTeam } = data;
     const instance = new GameManager(true);
-    let whiteTeam, blackTeam;
-    if (team1.team === team.black) {
-      blackTeam = this.restoreTeam(team1);
-      whiteTeam = this.restoreTeam(team2);
-    } else {
-      blackTeam = this.restoreTeam(team2);
-      whiteTeam = this.restoreTeam(team1);
-    }
 
-    instance.blackTeam = blackTeam;
-    instance.whiteTeam = whiteTeam;
+    instance.blackTeam = this.restoreTeam(blackTeam);
+    instance.whiteTeam = this.restoreTeam(whiteTeam);
     instance.board = this.restoreBoard(board);
     instance.setupFinished = setupFinished;
-    instance.teamTurn = team1.team === teamTurn ? team1 : team2;
+    instance.teamTurn = whiteTeam.team === teamTurn ? instance.whiteTeam : instance.blackTeam;
     instance.turnCount = turnCount;
 
     return instance;
@@ -454,8 +448,8 @@ export class GameManagerFactory {
     const { blackTeam, board, setupFinished, teamTurn, turnCount, whiteTeam } = gameManager;
 
     const data = {
-      team1: whiteTeam,
-      team2: blackTeam,
+      whiteTeam: whiteTeam,
+      blackTeam: blackTeam,
       teamTurn: teamTurn.team,
       board: board.board,
       turnCount: turnCount,
@@ -464,4 +458,16 @@ export class GameManagerFactory {
 
     return data;
   }
+}
+
+export interface IGameDetails {
+  player1: {
+    id: string;
+    team: team;
+  };
+  player2: {
+    id: string;
+    team: team;
+  };
+  game_data: IGameManagerData;
 }
