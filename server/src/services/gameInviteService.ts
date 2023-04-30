@@ -23,10 +23,12 @@ export const acceptGameInvite = async (currentUid: string, friendUid: string) =>
     player1: {
       id: currentUid,
       team: team.white,
+      challenger: false,
     },
     player2: {
       id: friendUid,
       team: team.black,
+      challenger: true,
     },
     game_data: newGameData,
   };

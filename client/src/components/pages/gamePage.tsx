@@ -22,7 +22,7 @@ import {
   team,
   GameManagerFactory,
 } from 'common';
-import { setReady } from '../../services/onlineGameSerivce';
+import { move, setReady } from '../../services/onlineGameSerivce';
 
 const whitePawnImage = require('../../assets/whitePawn.png');
 const blackPawnImage = require('../../assets/blackPawn.png');
@@ -106,11 +106,13 @@ const GamePage = () => {
                 return;
                 //show error
               }
-              setSelectedEntity({ entity: new King(getTeam(currentTeam).team), x: -1, y: -1 });
+
+              const t = getTeam(currentTeam);
+              setSelectedEntity({ entity: new King(t.team), x: -1, y: -1 });
               const highlightBoard = new MarkerBoard();
               for (let i = 0; i < 8; i++) {
-                if (!gameManager.board.getCell(i, 7).entity) {
-                  highlightBoard.setHighlight(i, 7);
+                if (!gameManager.board.getCell(i, t.FIRST_COLUMN).entity) {
+                  highlightBoard.setHighlight(i, t.FIRST_COLUMN);
                 }
               }
 
@@ -160,7 +162,7 @@ const GamePage = () => {
     );
   };
 
-  const handleCellClick = (cell: Cell) => {
+  const handleCellClick = async (cell: Cell) => {
     // handle setup clicks
     if (!gameManager.setupFinished) {
       if (selectedEntity && cell.isEmpty()) {
@@ -179,6 +181,23 @@ const GamePage = () => {
     }
     // handle game clicks
     else if (gameManager.setupFinished) {
+      if (cell.entity?.team === currentTeam) {
+        setSelectedEntity({ entity: cell.entity, x: cell.x, y: cell.y });
+        const highlightBoard = cell.entity.getPossibleMoves?.(cell.x, cell.y, gameManager.board) as MarkerBoard;
+        highlightBoard.setHighlight(cell.x, cell.y);
+
+        setHighlightBoard(highlightBoard);
+      } else if (selectedEntity) {
+        try {
+          // gameManager.move({ x: cell.x, y: cell.y }, { x: selectedEntity.x, y: selectedEntity.y });
+          await move(id, { x: selectedEntity.x, y: selectedEntity.y }, { x: cell.x, y: cell.y });
+
+          setSelectedEntity(null);
+          setHighlightBoard(new MarkerBoard());
+        } catch (error) {
+          console.error(error);
+        }
+      }
     }
   };
 
@@ -229,9 +248,7 @@ const GamePage = () => {
                     return (
                       <button
                         key={x}
-                        className={classNames('cell', {
-                          [`${color[highlightBoard.returnHighlightType(x, y)]}-highlight`]: true,
-                        })}
+                        className={classNames('cell', `${color[highlightBoard.returnHighlightType(x, y)]}-highlight`)}
                         onClick={() => handleCellClick(cell)}
                       >
                         {renderPieceImage(cell?.entity as Entity)}

@@ -16,8 +16,15 @@ export const gameController = () => {
   app.delete('/game', async (req: any, res) => {
     const gameId = req.body.gameId;
     const game = (await firebaseDb.ref(`games/${gameId}`).get()).val();
-    const challenged = game.player1;
-    const challenger = game.player2;
+    let challenged: string;
+    let challenger: string;
+    if (game.player1.challenger) {
+      challenger = game.player1.id;
+      challenged = game.player2.id;
+    } else {
+      challenger = game.player2.id;
+      challenged = game.player1.id;
+    }
 
     firebaseDb.ref(`games`).update({
       [gameId]: FieldValue.delete(),

@@ -212,7 +212,6 @@ export class Team {
   public readonly SECOND_COLUMN;
 
   constructor(public team: team, firstColumn: number, secondColumn: number) {
-    this.piecesSetup = { king: 2, pawn: 0 };
     this.isReady = false;
     this.FIRST_COLUMN = firstColumn;
     this.SECOND_COLUMN = secondColumn;
@@ -378,6 +377,9 @@ export class GameManagerFactory {
     instance.setupFinished = false;
     instance.blackTeam = new Team(team.black, 0, 1);
     instance.whiteTeam = new Team(team.white, 7, 6);
+    instance.blackTeam.piecesSetup = { king: 2, pawn: 0 };
+    instance.whiteTeam.piecesSetup = { king: 2, pawn: 0 };
+
     instance.turnCount = 0;
     instance.teamTurn = instance.whiteTeam;
 
@@ -464,10 +466,12 @@ export interface IGameDetails {
   player1: {
     id: string;
     team: team;
+    challenger: boolean;
   };
   player2: {
     id: string;
     team: team;
+    challenger: boolean;
   };
   game_data: IGameManagerData;
 }
