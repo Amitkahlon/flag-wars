@@ -132,10 +132,6 @@ export class MarkerBoard {
 export class Entity {
   public type: entityType;
   public team: team;
-  public image: {
-    black: string;
-    white: string;
-  };
   public isVisible: boolean;
 
   constructor() {
@@ -210,10 +206,10 @@ export type IPiecesSetup = {
 };
 
 export class Team {
-  piecesSetup: IPiecesSetup;
-  isReady: boolean;
-  readonly FIRST_COLUMN;
-  readonly SECOND_COLUMN;
+  public piecesSetup: IPiecesSetup;
+  public isReady: boolean;
+  public readonly FIRST_COLUMN;
+  public readonly SECOND_COLUMN;
 
   constructor(public team: team, firstColumn: number, secondColumn: number) {
     this.piecesSetup = { king: 2, pawn: 0 };
@@ -233,14 +229,7 @@ export class GameManager {
   public setupFinished: boolean;
   public blackTeam: Team;
   public whiteTeam: Team;
-  private _teamTurn: Team;
-  public get teamTurn(): Team {
-    return this._teamTurn;
-  }
-  public set teamTurn(value: Team) {
-    console.log(value.team);
-    this._teamTurn = value;
-  }
+  public teamTurn: Team;
   public turnCount: number;
 
   public setup_setPiece(entity: Entity, pos: Position) {
@@ -347,39 +336,132 @@ export class GameManager {
     return oppositeTeam.team === team.white ? this.blackTeam : this.whiteTeam;
   }
 
-  public getClone() {
-    const clone = new GameManager(false);
-
-    clone.blackTeam = this.blackTeam;
-    clone.whiteTeam = this.whiteTeam;
-    clone.board = this.board;
-    clone.setupFinished = this.setupFinished;
-    clone.turnCount = this.turnCount;
-    clone.teamTurn = this.teamTurn;
-    return clone;
-  }
-
   public passTurn() {
     this.teamTurn = this.getOppositeTeam(this.teamTurn);
     this.turnCount++;
   }
 
-  constructor(init: boolean = true) {
+  constructor(init: boolean = false) {
     if (init) {
       this.board = new Board();
-      this.setupFinished = false;
-      this.blackTeam = new Team(team.black, 0, 1);
-      this.whiteTeam = new Team(team.white, 7, 6);
-      this.turnCount = 0;
-      this.teamTurn = this.whiteTeam;
+    }
+  }
+}
 
-      for (let i = 0; i < 8; i++) {
-        this.board.getCell(i, 6).entity = new Pawn(team.white);
-      }
+interface IGameManagerData {
+  team1: Team;
+  team2: Team;
+  teamTurn: team;
+  board: Cell[][];
+  turnCount: number;
+  setupFinished: boolean;
+}
 
-      for (let i = 0; i < 8; i++) {
-        this.board.getCell(i, 1).entity = new Pawn(team.black);
+export class GameManagerFactory {
+  public static getClone(gameManager: GameManager): GameManager {
+    const clone = new GameManager();
+
+    clone.blackTeam = gameManager.blackTeam;
+    clone.whiteTeam = gameManager.whiteTeam;
+    clone.board = gameManager.board;
+    clone.setupFinished = gameManager.setupFinished;
+    clone.turnCount = gameManager.turnCount;
+    clone.teamTurn = gameManager.teamTurn;
+    return clone;
+  }
+
+  public static initGameManager(): GameManager {
+    const instance = new GameManager();
+    instance.board = new Board();
+    instance.setupFinished = false;
+    instance.blackTeam = new Team(team.black, 0, 1);
+    instance.whiteTeam = new Team(team.white, 7, 6);
+    instance.turnCount = 0;
+    instance.teamTurn = instance.whiteTeam;
+
+    for (let i = 0; i < 8; i++) {
+      instance.board.getCell(i, 6).entity = new Pawn(team.white);
+    }
+
+    for (let i = 0; i < 8; i++) {
+      instance.board.getCell(i, 1).entity = new Pawn(team.black);
+    }
+
+    return instance;
+  }
+
+  private static restoreTeam(t: Team) {
+    const restored = new Team(t.team, t.FIRST_COLUMN, t.SECOND_COLUMN);
+    restored.isReady = t.isReady;
+    restored.piecesSetup = t.piecesSetup;
+    return restored;
+  }
+
+  private static restoreBoard(board: Cell[][]) {
+    const restored = new Board();
+    for (let i = 0; i < 8; i++) {
+      for (let j = 0; j < 8; j++) {
+        restored.board[i][j] = new Cell(j, i);
+        restored.board[i][j].entity = this.restoreEntity(board[i][j].entity);
       }
     }
+
+    return restored;
+  }
+
+  private static restoreEntity(entity: Entity) {
+    if (entity == null) {
+      return null;
+    }
+
+    let restored: Entity;
+    switch (entity.type) {
+      case 'king':
+        restored = new King(entity.team);
+        break;
+      case 'pawn':
+        restored = new Pawn(entity.team);
+        break;
+    }
+
+    restored.isVisible = entity.isVisible;
+    return restored;
+  }
+
+  public static restoreGame(data: IGameManagerData): GameManager {
+    const { board, setupFinished, teamTurn, turnCount, team1, team2 } = data;
+    const instance = new GameManager(true);
+    let whiteTeam, blackTeam;
+    if (team1.team === team.black) {
+      blackTeam = this.restoreTeam(team1);
+      whiteTeam = this.restoreTeam(team2);
+    } else {
+      blackTeam = this.restoreTeam(team2);
+      whiteTeam = this.restoreTeam(team1);
+    }
+
+    instance.blackTeam = blackTeam;
+    instance.whiteTeam = whiteTeam;
+    instance.board = this.restoreBoard(board);
+    instance.setupFinished = setupFinished;
+    instance.teamTurn = team1.team === teamTurn ? team1 : team2;
+    instance.turnCount = turnCount;
+
+    return instance;
+  }
+
+  public static getData(gameManager: GameManager): IGameManagerData {
+    const { blackTeam, board, setupFinished, teamTurn, turnCount, whiteTeam } = gameManager;
+
+    const data = {
+      team1: whiteTeam,
+      team2: blackTeam,
+      teamTurn: teamTurn.team,
+      board: board.board,
+      turnCount: turnCount,
+      setupFinished: setupFinished,
+    };
+
+    return data;
   }
 }

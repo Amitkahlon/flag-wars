@@ -16,6 +16,7 @@ import {
   entityType,
   printType,
   team,
+  GameManagerFactory,
 } from 'common';
 
 const whitePawnImage = require('../../assets/whitePawn.png');
@@ -23,7 +24,6 @@ const blackPawnImage = require('../../assets/blackPawn.png');
 const whiteKingImage = require('../../assets/whiteKing.png');
 const blackKingImage = require('../../assets/blackKing.png');
 const eyeImage = require('../../assets/eye.jpg');
-
 
 // this is a ugly hack to inject the images to the imported common project
 Pawn.getImage = function (entity) {
@@ -41,7 +41,7 @@ interface selectedEntity {
 }
 
 const OfflineGamePage = () => {
-  const [gameManager, setGameManager] = useState(new GameManager());
+  const [gameManager, setGameManager] = useState(GameManagerFactory.initGameManager());
   const [currentTeam, setCurrentTeam] = useState(gameManager.whiteTeam);
   const [selectedEntity, setSelectedEntity] = useState<selectedEntity | null>(null);
   const [highlightBoard, setHighlightBoard] = useState<MarkerBoard>(new MarkerBoard());
@@ -95,7 +95,8 @@ const OfflineGamePage = () => {
           );
 
           setSelectedEntity(null);
-          const gmClone = gameManager.getClone();
+
+          const gmClone = GameManagerFactory.getClone(gameManager);
           setGameManager(gmClone);
           setHighlightBoard(new MarkerBoard());
 
@@ -109,7 +110,7 @@ const OfflineGamePage = () => {
               color.blue,
             );
 
-            const gmClone = gameManager.getClone();
+            const gmClone = GameManagerFactory.getClone(gameManager);
             setGameManager(gmClone);
             setHighlightBoard(highlightBoardWithEnemyMove);
           }, 1000);
@@ -186,7 +187,8 @@ const OfflineGamePage = () => {
     gameManager.setup_setPiece(new King(oppositeTeam.team), { x: num2, y: oppositeTeam.FIRST_COLUMN });
     gameManager.setReady(oppositeTeam);
 
-    setGameManager(gameManager.getClone()); //hack to update the ui..
+    const gmClone = GameManagerFactory.getClone(gameManager);
+    setGameManager(gmClone); //hack to update the ui..
     setSelectedEntity(null);
   };
 

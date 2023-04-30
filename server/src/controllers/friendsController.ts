@@ -1,26 +1,15 @@
-import * as core from 'express-serve-static-core';
-import { app, auth, firebaseDb, firestoreDb } from '..';
+import { app } from '..';
 import { authMiddleware } from '../middlewares/auth';
-import admin from 'firebase-admin';
-import { getDatabase } from 'firebase-admin/database';
-import { FieldValue } from 'firebase-admin/firestore';
-import { team, initCleanBoard } from 'common';
-
 import { DbService } from '../services/dbService';
+import { acceptGameInvite, inviteToGame, rejectGameInvite } from '../services/gameInviteService';
+import { addFriend, getFriends } from '../services/friendsService';
 
 export const friendsController = () => {
   app.get('/friends', authMiddleware, async (req: any, res) => {
     const uid = req.user.uid;
 
-    const dbService = new DbService();
-
-    const currentUserRef = dbService.getUserDoc(uid);
-    const currentUser = (await currentUserRef.get()) as any;
-
-    const friendList = currentUser.data().friends;
-    const fullFriendList = await dbService.getUsers(friendList);
-
-    res.send(fullFriendList);
+    const friends = await getFriends(uid);
+    res.send(friends);
   });
 
   app.post('/friends', authMiddleware, async (req: any, res) => {
@@ -38,27 +27,23 @@ export const friendsController = () => {
     const dbService = new DbService();
 
     const currentUserRef = dbService.getUserDoc(uid);
+    const currentUser = await currentUserRef.get();
+
+    if ((currentUser as any).data().friends.includes(friendId)) {
+      return res.status(409).send({ message: 'User is already on your friends list' });
+    }
+
+    const friend = await dbService.getUser(friendId);
+    if (!friend?.exists) {
+      return res.status(400).send({ message: 'User with the given Id was not found' });
+    }
+
     try {
-      const currentUser = await currentUserRef.get();
-
-      if ((currentUser as any).data().friends.includes(friendId)) {
-        return res.status(409).send({ message: 'User is already on your friends list' });
-      }
-
-      const friend = await dbService.getUser(friendId);
-      if (!friend?.exists) {
-        return res.status(400).send({ message: 'User with the given Id was not found' });
-      }
-
-      currentUserRef.update({ friends: FieldValue.arrayUnion(friendId) });
-
-      const newFriendListIds = [...(currentUser as any).data().friends, friendId];
-      const fullFriendList = await dbService.getUsers(newFriendListIds);
-
-      res.send(fullFriendList);
-      res.status(200);
+      const friendList = await addFriend(friendId, uid);
+      res.status(200).send(friendList);
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      res.status(500).send(error);
     }
   });
 
@@ -84,19 +69,13 @@ export const friendsController = () => {
       return res.status(400).send({ message: 'The invited user did not accept your friend request' });
     }
 
-    const currentGameInvitesSentRef = firebaseDb.ref(`game_invites/${currentUid}/sent/${friendUid}`);
-    currentGameInvitesSentRef.set({
-      status: 'pending',
-      gameId: null,
-    });
-
-    const friendGameInvitesReceived = firebaseDb.ref(`game_invites/${friendUid}/received/${currentUid}`);
-    friendGameInvitesReceived.set({
-      status: 'pending',
-      gameId: null,
-    });
-
-    res.send(200);
+    try {
+      inviteToGame(currentUid, friendUid);
+      res.send(200);
+    } catch (error) {
+      console.log(error);
+      res.status(500).send(error);
+    }
   });
 
   app.post('/friends/gameinvite/answer', authMiddleware, async (req: any, res) => {
@@ -104,44 +83,20 @@ export const friendsController = () => {
     const friendUid = req.body?.friendUid as string;
     const currentUid = req.user.uid as string;
 
+    //TODO:
     // handle body validation
     // handle invite validation
     // handle pending invite
 
     if (answerVal) {
-      const newGameRef = firebaseDb.ref(`games`).push({
-        player1: currentUid,
-        player2: friendUid,
-        turnCount: 0,
-        currentTurn: false, //player1 = false, player2 = true
-        game: initCleanBoard(),
-      });
-
-      const gameId = newGameRef.key;
-
-      const currentGameInvitesSentRef = firebaseDb.ref(`game_invites/${currentUid}/received/${friendUid}`);
-      currentGameInvitesSentRef.set({
-        status: 'ongoing',
-        gameId: gameId,
-      });
-
-      const friendGameInvitesReceived = firebaseDb.ref(`game_invites/${friendUid}/sent/${currentUid}`);
-      friendGameInvitesReceived.set({
-        status: 'ongoing',
-        gameId: gameId,
-      });
+      acceptGameInvite(currentUid, friendUid);
     } else {
-      const currentGameInvitesSentRef = firebaseDb.ref(`game_invites/${currentUid}/received`);
-
-      currentGameInvitesSentRef.update({
-        [friendUid]: FieldValue.delete(),
-      });
-
-      const friendGameInvitesReceived = firebaseDb.ref(`game_invites/${friendUid}/sent`);
-
-      friendGameInvitesReceived.update({
-        [currentUid]: FieldValue.delete(),
-      });
+      try {
+        rejectGameInvite(friendUid, currentUid);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send(error);
+      }
     }
   });
 };
