@@ -88,11 +88,7 @@ const OfflineGamePage = () => {
         setHighlightBoard(highlightBoard);
       } else if (selectedEntity) {
         try {
-          gameManager.move(
-            selectedEntity.entity,
-            { x: cell.x, y: cell.y },
-            { x: selectedEntity.x, y: selectedEntity.y },
-          );
+          gameManager.move({ x: cell.x, y: cell.y }, { x: selectedEntity.x, y: selectedEntity.y });
 
           setSelectedEntity(null);
 
@@ -230,7 +226,7 @@ const OfflineGamePage = () => {
 
     const randomMove = possibleMovesArr[Math.floor(Math.random() * possibleMovesArr.length)];
 
-    gameManager.move(randomEntity.entity, randomMove, randomEntity.pos);
+    gameManager.move(randomMove, randomEntity.pos);
 
     return { move: randomMove, entityPos: randomEntity.pos };
   };
