@@ -54,7 +54,8 @@ const GamePage = () => {
     player2: { id: '', team: team.black },
   });
   const [gameManager, setGameManager] = useState(GameManagerFactory.initGameManager());
-  const [currentTeam, setCurrentTeam] = useState(gameManager.whiteTeam.team);
+  const [currentTeam, setCurrentTeam] = useState<team | null>();
+  const [initialLoad, setInitialLoad] = useState(false);
 
   const [selectedEntity, setSelectedEntity] = useState<selectedEntity | null>(null);
   const [highlightBoard, setHighlightBoard] = useState<MarkerBoard>(new MarkerBoard());
@@ -72,6 +73,7 @@ const GamePage = () => {
       const gameDetails = { player1: data.player1, player2: data.player2, whitePlayer: data.white_player };
       setGameDetails(gameDetails);
       setGameManager(GameManagerFactory.restoreGame(data.game_data));
+      if (!initialLoad) setInitialLoad(true);
     });
   };
 
@@ -140,12 +142,6 @@ const GamePage = () => {
     setSelectedEntity(null);
   };
 
-  const deb = () => {
-    debugger;
-
-    return null;
-  };
-
   const renderPieceImage = (entity: Entity) => {
     if (entity == null) return null;
     // const image = entity.team === team.black ? entity.image.black : entity.image.white;
@@ -188,7 +184,10 @@ const GamePage = () => {
 
   useEffect(() => {
     listenForGame();
+  }, []);
 
+  useEffect(() => {
+    if (!initialLoad) return;
     const currentId = auth.currentUser?.uid;
     let team: team;
 
@@ -202,48 +201,54 @@ const GamePage = () => {
     }
 
     setCurrentTeam(team);
-  }, []);
+  }, [initialLoad]);
 
   return (
-    <div>
-      <h1>Game Id: {id}</h1>
-      <div>
-        <h3>Player1: {gameDetails.player1.id}</h3>
-        <p>Team: {team[gameDetails.player1.team]}</p>
-      </div>
-      <div>
-        <h3>Player2: {gameDetails.player2.id}</h3>
-        <p>Team: {team[gameDetails.player2.team]}</p>
-      </div>
+    <>
+      {initialLoad ? (
+        <div>
+          <h1>Game Id: {id}</h1>
+          <div>
+            <h3>Player1: {gameDetails.player1.id}</h3>
+            <p>Team: {team[gameDetails.player1.team]}</p>
+          </div>
+          <div>
+            <h3>Player2: {gameDetails.player2.id}</h3>
+            <p>Team: {team[gameDetails.player2.team]}</p>
+          </div>
 
-      <h4>Turn Count: {gameManager.turnCount}</h4>
+          <h4>Turn Count: {gameManager.turnCount}</h4>
 
-      <div>
-        {!gameManager.setupFinished ? <p>Place your pieces</p> : <p>Game started</p>}
+          <div>
+            {!gameManager.setupFinished ? <p>Place your pieces</p> : <p>Game started</p>}
 
-        <div className="board">
-          {gameManager.board.board?.map((row: Cell[], y: number) => (
-            <div key={y} className="row">
-              {row.map((cell, x) => {
-                return (
-                  <button
-                    key={x}
-                    className={classNames('cell', {
-                      [`${color[highlightBoard.returnHighlightType(x, y)]}-highlight`]: true,
-                    })}
-                    onClick={() => handleCellClick(cell)}
-                  >
-                    {renderPieceImage(cell?.entity as Entity)}
-                  </button>
-                );
-              })}
+            <div className="board">
+              {gameManager.board.board?.map((row: Cell[], y: number) => (
+                <div key={y} className="row">
+                  {row.map((cell, x) => {
+                    return (
+                      <button
+                        key={x}
+                        className={classNames('cell', {
+                          [`${color[highlightBoard.returnHighlightType(x, y)]}-highlight`]: true,
+                        })}
+                        onClick={() => handleCellClick(cell)}
+                      >
+                        {renderPieceImage(cell?.entity as Entity)}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {renderGameSetup()}
-      </div>
-    </div>
+            {renderGameSetup()}
+          </div>
+        </div>
+      ) : (
+        <h2>Loading Game...</h2>
+      )}
+    </>
   );
 };
 
